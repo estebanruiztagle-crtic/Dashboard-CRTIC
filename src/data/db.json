@@ -1,0 +1,136 @@
+{
+    "projects": [
+        {
+            "id": 1,
+            "name": "Mining Autonomy v2",
+            "client": "Antofagasta Minerals",
+            "sector": "Extractiva",
+            "stage": "Testear",
+            "type": "R&D",
+            "taxBenefit": true,
+            "progress": 75,
+            "description": "Implementación de sistemas autónomos para camiones mineros."
+        },
+        {
+            "id": 2,
+            "name": "Supply Chain AI",
+            "client": "Cencosud",
+            "sector": "Retail",
+            "stage": "Desarrollar",
+            "type": "Service",
+            "taxBenefit": false,
+            "progress": 45,
+            "description": "Optimización de inventario mediante modelos predictivos."
+        },
+        {
+            "id": 3,
+            "name": "Health Sensors IoT",
+            "client": "Clínica Alemana",
+            "sector": "Salud",
+            "stage": "Investigar",
+            "type": "R&D",
+            "taxBenefit": true,
+            "progress": 20,
+            "description": "Monitoreo remoto de pacientes críticos."
+        },
+        {
+            "id": 4,
+            "name": "Logistics Route Optimization",
+            "client": "DHL",
+            "sector": "Logistica",
+            "stage": "Escalar",
+            "type": "Service",
+            "taxBenefit": true,
+            "progress": 90,
+            "description": "Reducción de huella de carbono en rutas urbanas."
+        },
+        {
+            "id": 5,
+            "name": "HR Talent Analysis",
+            "client": "Entel",
+            "sector": "Recursos Humanos",
+            "stage": "Oportunidad",
+            "type": "R&D",
+            "taxBenefit": false,
+            "progress": 10,
+            "description": "Análisis de retención laboral mediante IA."
+        }
+    ],
+    "activities": [
+        {
+            "id": 1,
+            "type": "tour",
+            "title": "Lab Tour - Mining Group",
+            "date": "2026-01-27",
+            "time": "10:00 AM",
+            "status": "Confirmed"
+        },
+        {
+            "id": 2,
+            "type": "workshop",
+            "title": "Innovation Workshop",
+            "date": "2026-01-26",
+            "time": "2:00 PM",
+            "status": "Completed"
+        },
+        {
+            "id": 3,
+            "type": "review",
+            "title": "Project Review: AgriTech",
+            "date": "2026-01-25",
+            "time": "Pending",
+            "status": "Completed"
+        }
+    ],
+    "quotations": [
+        {
+            "id": 1,
+            "client": "Antofagasta Minerals",
+            "sector": "Extractiva",
+            "amount": 150000,
+            "date": "2026-01-15"
+        },
+        {
+            "id": 2,
+            "client": "Cencosud",
+            "sector": "Retail",
+            "amount": 45000,
+            "date": "2026-01-20"
+        },
+        {
+            "id": 3,
+            "client": "Clínica Alemana",
+            "sector": "Salud",
+            "amount": 80000,
+            "date": "2025-12-05"
+        },
+        {
+            "id": 4,
+            "client": "DHL",
+            "sector": "Logistica",
+            "amount": 120000,
+            "date": "2025-11-20"
+        },
+        {
+            "id": 5,
+            "client": "Entel",
+            "sector": "Recursos Humanos",
+            "amount": 35000,
+            "date": "2026-01-05"
+        },
+        {
+            "id": 6,
+            "client": "Antofagasta Minerals",
+            "sector": "Extractiva",
+            "amount": 200000,
+            "date": "2025-10-15"
+        },
+        {
+            "id": 7,
+            "client": "Cencosud",
+            "sector": "Retail",
+            "amount": 60000,
+            "date": "2025-08-20"
+        }
+    ]
+}

@@ -1,0 +1,294 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg-primary: #f8fafc;
+  --bg-glass: rgba(255, 255, 255, 0.7);
+  --accent-primary: #ff6b4a;
+  /* From the reference image 1 */
+  --accent-secondary: #4a90e2;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --border-glass: rgba(255, 255, 255, 0.2);
+  --shadow-soft: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  --glass-effect: blur(10px);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: 'Outfit', sans-serif;
+}
+
+.glass-card {
+  background: var(--bg-glass);
+  backdrop-filter: var(--glass-effect);
+  -webkit-backdrop-filter: var(--glass-effect);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 24px;
+  box-shadow: var(--shadow-soft);
+}
+
+.dashboard-container {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  height: 100vh;
+  gap: 24px;
+  padding: 24px;
+}
+
+.sidebar {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.main-content {
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.grad-orange-pink {
+  background: linear-gradient(135deg, #ff8a71 0%, #ff6b4a 100%);
+  color: white;
+}
+
+.grad-blue-purple {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+}
+
+.stat-chip {
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* ===== DARK MODE STYLES ===== */
+.dark-mode {
+  --bg-primary: #0f172a;
+  --bg-glass: rgba(30, 41, 59, 0.8);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border-glass: rgba(255, 255, 255, 0.1);
+  --shadow-soft: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode body,
+.dashboard-container.dark-mode {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.dark-mode .glass-card {
+  background: var(--bg-glass);
+  border-color: var(--border-glass);
+}
+
+.dark-mode .search-bar input {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.dark-mode .search-bar input::placeholder {
+  color: var(--text-secondary);
+}
+
+.dark-mode .project-card {
+  background: rgba(30, 41, 59, 0.9);
+}
+
+.dark-mode .project-card h4 {
+  color: var(--text-primary);
+}
+
+.dark-mode .client-name {
+  color: var(--text-secondary);
+}
+
+.dark-mode .industry-tag {
+  background: rgba(255, 107, 74, 0.15);
+}
+
+.dark-mode .progress-bar {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode .stage {
+  color: var(--text-primary);
+}
+
+.dark-mode .nav-item {
+  color: var(--text-secondary);
+}
+
+.dark-mode .nav-item.active,
+.dark-mode .nav-item:hover {
+  color: var(--text-primary);
+  background: rgba(255, 107, 74, 0.15);
+}
+
+.dark-mode .industry-item {
+  color: var(--text-secondary);
+}
+
+.dark-mode .industry-item.active,
+.dark-mode .industry-item:hover {
+  color: var(--text-primary);
+  background: rgba(255, 107, 74, 0.15);
+}
+
+.dark-mode .stat-card {
+  background: rgba(30, 41, 59, 0.9);
+}
+
+.dark-mode .stat-info .label {
+  color: var(--text-secondary);
+}
+
+.dark-mode .stat-info .value {
+  color: var(--text-primary);
+}
+
+.dark-mode .activity-item {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark-mode .activity-title {
+  color: var(--text-primary);
+}
+
+.dark-mode .activity-time {
+  color: var(--text-secondary);
+}
+
+.dark-mode .viz-tabs span {
+  color: var(--text-secondary);
+}
+
+.dark-mode .viz-tabs span.active {
+  color: var(--text-primary);
+  background: rgba(255, 107, 74, 0.2);
+}
+
+.dark-mode h3 {
+  color: var(--text-primary);
+}
+
+.dark-mode .node-label {
+  color: var(--text-secondary);
+}
+
+.dark-mode .stage-node.has-projects .node-label {
+  color: var(--text-primary);
+}
+
+.dark-mode .modal-container {
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.dark-mode .form-group label {
+  color: var(--text-secondary);
+}
+
+.dark-mode .form-group input,
+.dark-mode .form-group select,
+.dark-mode .form-group textarea {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.dark-mode .btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.dark-mode .quotation-indicator {
+  background: rgba(30, 41, 59, 0.9);
+}
+
+.dark-mode .period-toggle button {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+}
+
+.dark-mode .period-toggle button.active {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.dark-mode .indicator-filters select {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.dark-mode .stage-select {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.dark-mode .user-profile {
+  background: rgba(30, 41, 59, 0.9);
+}
+
+.dark-mode .user-name {
+  color: var(--text-primary);
+}
+
+.dark-mode .user-role {
+  color: var(--text-secondary);
+}
+
+/* Theme Toggle Button Animation */
+.theme-toggle {
+  transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+  transform: rotate(15deg);
+}
+
+.dark-mode .theme-toggle {
+  color: #fbbf24;
+}
