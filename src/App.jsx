@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+// Trigger fresh deployment run to overcome GitHub Actions runner queue issue.
 import {
   BarChart3,
   Beaker,
