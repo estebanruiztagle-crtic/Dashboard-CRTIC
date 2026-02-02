@@ -18,7 +18,9 @@ import {
   Moon,
   Plus,
   Brain,
-  Sparkles
+  Sparkles,
+  Trophy,
+  Frown
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import ProjectCard, { getProgressFromStage } from './components/ProjectCard';
@@ -56,7 +58,9 @@ function App() {
 
   const [isAIBrainModalOpen, setIsAIBrainModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [closingData, setClosingData] = useState({ status: 'Closed Won', reason: '' });
 
 
   // Load Initial Data
@@ -65,8 +69,18 @@ function App() {
     const savedActivities = localStorage.getItem('ptc_activities');
     const savedQuotations = localStorage.getItem('ptc_quotations');
 
-    if (savedProjects) setProjects(JSON.parse(savedProjects));
-    else setProjects(db.projects);
+    const ensureProjectTracking = (p) => ({
+      ...p,
+      createdAt: p.createdAt || new Date().toISOString(),
+      stageHistory: p.stageHistory || { [p.stage]: new Date().toISOString() },
+      status: p.status || 'Active'
+    });
+
+    if (savedProjects) {
+      setProjects(JSON.parse(savedProjects).map(ensureProjectTracking));
+    } else {
+      setProjects(db.projects.map(ensureProjectTracking));
+    }
 
     if (savedActivities) setActivities(JSON.parse(savedActivities));
     else setActivities(db.activities);
@@ -99,10 +113,14 @@ function App() {
 
   const handleAddProject = (e) => {
     e.preventDefault();
+    const now = new Date().toISOString();
     const projectToAdd = {
       ...newProject,
       id: Date.now(),
-      progress: getProgressFromStage(newProject.stage)
+      progress: getProgressFromStage(newProject.stage),
+      createdAt: now,
+      stageHistory: { [newProject.stage]: now },
+      status: 'Active'
     };
     setProjects([projectToAdd, ...projects]);
     setIsProjectModalOpen(false);
@@ -147,6 +165,7 @@ function App() {
 
   // AI Integration Handler
   const handleProjectExtracted = (extracted) => {
+    const now = new Date().toISOString();
     const projectToAdd = {
       id: Date.now(),
       name: extracted.name,
@@ -157,7 +176,10 @@ function App() {
       progress: 0,
       description: extracted.description,
       sr: extracted.sr,
-      amount: extracted.amount
+      amount: extracted.amount,
+      createdAt: now,
+      stageHistory: { 'Opportunidad': now },
+      status: 'Active'
     };
 
     setProjects([projectToAdd, ...projects]);
@@ -188,7 +210,7 @@ function App() {
   };
 
   // Statistics
-  const activeProjectsCount = projects.filter(p => p.stage !== 'Validar' && p.stage !== 'Escalar').length;
+  const activeProjectsCount = projects.filter(p => p.status === 'Active' && p.stage !== 'Validar' && p.stage !== 'Escalar').length;
   const servicesCount = projects.filter(p => p.type === 'Service').length;
 
   // Unique clients from projects
@@ -199,8 +221,15 @@ function App() {
   // Advanced Statistics
   const totalQuoted = useMemo(() => quotations.reduce((sum, q) => sum + (q.amount || 0), 0), [quotations]);
   const closingRate = useMemo(() => {
-    const total = projects.length + quotations.length;
-    return total > 0 ? Math.round((projects.length / total) * 100) : 0;
+    const won = projects.filter(p => p.status === 'Closed Won').length;
+    const lost = projects.filter(p => p.status === 'Closed Lost').length;
+    const totalClosed = won + lost;
+
+    if (totalClosed > 0) return Math.round((won / totalClosed) * 100);
+
+    // Fallback: historical ratio if no actual closures exist in this session
+    const totalOpportunities = projects.length + quotations.length;
+    return totalOpportunities > 0 ? Math.round((projects.length / totalOpportunities) * 100) : 0;
   }, [projects, quotations]);
 
   const leadSector = useMemo(() => {
@@ -246,9 +275,18 @@ function App() {
     const projectToUpdate = projects.find(p => p.id === id);
     const oldStage = projectToUpdate?.stage;
     const newProgress = getProgressFromStage(newStage);
+    const now = new Date().toISOString();
 
     setProjects(projects.map(p =>
-      p.id === id ? { ...p, stage: newStage, progress: newProgress } : p
+      p.id === id ? {
+        ...p,
+        stage: newStage,
+        progress: newProgress,
+        stageHistory: {
+          ...(p.stageHistory || {}),
+          [newStage]: now
+        }
+      } : p
     ));
 
     const activity = {
@@ -260,6 +298,39 @@ function App() {
       status: 'Completed'
     };
     setActivities([activity, ...activities]);
+  };
+
+  const handleCloseProject = (e) => {
+    e.preventDefault();
+    if (!selectedProject) return;
+
+    const { status, reason } = closingData;
+
+    setProjects(projects.map(p =>
+      p.id === selectedProject.id ? {
+        ...p,
+        status: status, // 'Closed Won' or 'Closed Lost'
+        closureReason: reason,
+        closedAt: new Date().toISOString()
+      } : p
+    ));
+
+    const activity = {
+      id: Date.now(),
+      type: 'review',
+      title: `Proyecto "${selectedProject.name}" cerrado: ${status === 'Closed Won' ? 'Ganado' : 'Perdido'} - Razón: ${reason}`,
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'Completed'
+    };
+    setActivities([activity, ...activities]);
+    setIsClosingModalOpen(false);
+    setClosingData({ status: 'Closed Won', reason: '' });
+  };
+
+  const openClosingModal = (project) => {
+    setSelectedProject(project);
+    setIsClosingModalOpen(true);
   };
 
   const handleAddActivity = (e) => {
@@ -564,7 +635,14 @@ function App() {
             <div className="projects-grid">
               {filteredProjects.length > 0 ? (
                 filteredProjects.map(project => (
-                  <ProjectCard key={project.id} project={project} onDelete={handleDeleteProject} onUpdateStage={handleUpdateStage} onView={handleViewProject} />
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    onDelete={handleDeleteProject}
+                    onUpdateStage={handleUpdateStage}
+                    onView={handleViewProject}
+                    onCloseClick={openClosingModal}
+                  />
                 ))
               ) : (
                 <div className="no-results">No projects found for the selected filters.</div>
@@ -720,6 +798,66 @@ function App() {
             <button type="submit" className="btn-primary">Registrar</button>
           </div>
         </form>
+      </Modal>
+
+      {/* Closing Modal */}
+      <Modal isOpen={isClosingModalOpen} onClose={() => setIsClosingModalOpen(false)} title="Cerrar Oportunidad">
+        {selectedProject && (
+          <form onSubmit={handleCloseProject}>
+            <div style={{ marginBottom: '20px', padding: '16px', background: 'rgba(0,0,0,0.02)', borderRadius: '12px' }}>
+              <h4 style={{ margin: 0, color: 'var(--accent-primary)' }}>{selectedProject.name}</h4>
+              <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{selectedProject.client}</p>
+            </div>
+
+            <div className="form-group">
+              <label>Resultado del Cierre</label>
+              <div className="closure-type-selector" style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  className={`choice-btn ${closingData.status === 'Closed Won' ? 'active won' : ''}`}
+                  onClick={() => setClosingData({ ...closingData, status: 'Closed Won' })}
+                >
+                  <Trophy size={18} />
+                  <span>Ganado (Won)</span>
+                </button>
+                <button
+                  type="button"
+                  className={`choice-btn ${closingData.status === 'Closed Lost' ? 'active lost' : ''}`}
+                  onClick={() => setClosingData({ ...closingData, status: 'Closed Lost' })}
+                >
+                  <Frown size={18} />
+                  <span>Perdido (Lost)</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Razón del Cierre</label>
+              <textarea
+                required
+                rows="4"
+                value={closingData.reason}
+                onChange={(e) => setClosingData({ ...closingData, reason: e.target.value })}
+                placeholder="Indica detalladamente por qué se cerró esta oportunidad..."
+              />
+            </div>
+
+            <div className="form-actions">
+              <button type="button" className="btn-secondary" onClick={() => setIsClosingModalOpen(false)}>Regresar</button>
+              <button type="submit" className={`grad-${closingData.status === 'Closed Won' ? 'orange-pink' : 'blue-purple'}`} style={{
+                padding: '12px 24px',
+                borderRadius: '16px',
+                border: 'none',
+                color: 'white',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: closingData.status === 'Closed Won' ? '0 8px 16px rgba(255,107,74,0.2)' : '0 8px 16px rgba(74,144,226,0.2)'
+              }}>
+                Confirmar Cierre
+              </button>
+            </div>
+          </form>
+        )}
       </Modal>
 
       {/* AI Brain Modal */}
