@@ -21,9 +21,13 @@ import {
   Brain,
   Sparkles,
   Trophy,
-  Frown
+  Frown,
+  DollarSign,
+  Trash2,
+  Edit3
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { jsPDF } from 'jspdf';
 import ProjectCard, { getProgressFromStage } from './components/ProjectCard';
 import QuotationIndicator from './components/QuotationIndicator';
 import Modal from './components/Modal';
@@ -63,6 +67,11 @@ function App() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [closingData, setClosingData] = useState({ status: 'Closed Won', reason: '' });
 
+  // Client Management State
+  const [clients, setClients] = useState([]);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState(null);
+
 
   // Load Initial Data
   useEffect(() => {
@@ -88,6 +97,18 @@ function App() {
 
     if (savedQuotations) setQuotations(JSON.parse(savedQuotations));
     else setQuotations(db.quotations || []);
+
+    // Extract unique clients if no clients saved
+    const savedClients = localStorage.getItem('ptc_clients');
+    if (savedClients) {
+      setClients(JSON.parse(savedClients));
+    } else {
+      const allClients = new Set([
+        ...db.projects.map(p => p.client),
+        ...db.quotations.map(q => q.client)
+      ].filter(Boolean));
+      setClients(Array.from(allClients).map(name => ({ id: name, name })));
+    }
   }, []);
 
   // Persist Data
@@ -95,7 +116,8 @@ function App() {
     if (projects.length > 0) localStorage.setItem('ptc_projects', JSON.stringify(projects));
     if (activities.length > 0) localStorage.setItem('ptc_activities', JSON.stringify(activities));
     if (quotations.length > 0) localStorage.setItem('ptc_quotations', JSON.stringify(quotations));
-  }, [projects, activities, quotations]);
+    if (clients.length > 0) localStorage.setItem('ptc_clients', JSON.stringify(clients));
+  }, [projects, activities, quotations, clients]);
 
   const industries = [
     'Extractiva', 'Retail', 'Salud', 'Logística',
@@ -257,6 +279,179 @@ function App() {
     }
   };
 
+  const handleDeleteActivity = (id) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar esta actividad?')) {
+      setActivities(activities.filter(a => a.id !== id));
+    }
+  };
+
+  const handleDeleteClient = (clientName) => {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar al cliente "${clientName}"? Esto eliminará todos sus proyectos y cotizaciones asociados.`)) {
+      setClients(clients.filter(c => c.name !== clientName));
+      setProjects(projects.filter(p => p.client !== clientName));
+      setQuotations(quotations.filter(q => q.client !== clientName));
+
+      const activity = {
+        id: Date.now(),
+        type: 'review',
+        title: `Cliente eliminado: ${clientName}`,
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        status: 'Completed'
+      };
+      setActivities([activity, ...activities]);
+    }
+  };
+
+  const handleUpdateClient = (oldName, newName) => {
+    setClients(clients.map(c => c.name === oldName ? { ...c, name: newName } : c));
+    setProjects(projects.map(p => p.client === oldName ? { ...p, client: newName } : p));
+    setQuotations(quotations.map(q => q.client === oldName ? { ...q, client: newName } : q));
+  };
+
+  const generateReport = () => {
+    const doc = new jsPDF();
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    // Header
+    doc.setFillColor(255, 107, 74); // Accent Orange
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RESUMEN EJECUTIVO DE OPORTUNIDADES', 20, 25);
+    doc.setFontSize(10);
+    doc.text(`Generado el: ${dateStr}`, 160, 35);
+
+    // Summary Section
+    const last3Months = [];
+    for (let i = 2; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      last3Months.push({
+        name: d.toLocaleString('es-ES', { month: 'long' }),
+        month: d.getMonth(),
+        year: d.getFullYear(),
+        count: 0,
+        amount: 0
+      });
+    }
+
+    const reportProjects = projects.filter(p => {
+      const created = new Date(p.createdAt);
+      return created >= new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    });
+
+    reportProjects.forEach(p => {
+      const created = new Date(p.createdAt);
+      const m = last3Months.find(month => month.month === created.getMonth() && month.year === created.getFullYear());
+      if (m) {
+        m.count++;
+        m.amount += p.amount || 0;
+      }
+    });
+
+    const totalReportAmount = reportProjects.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+    doc.setTextColor(60, 60, 60);
+    doc.setFontSize(16);
+    doc.text('KPIs Principales', 20, 55);
+
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, 58, 190, 58);
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Oportunidades: ${reportProjects.length}`, 25, 70);
+    doc.text(`Monto Total Cotizado: ${formatCLP(totalReportAmount)}`, 25, 80);
+    doc.text(`Sector Líder: ${leadSector}`, 25, 90);
+
+    // Monthly Table
+    doc.setFillColor(248, 250, 252); // Light Gray Background
+    doc.rect(20, 115, 170, 45, 'F');
+
+    doc.setFontSize(16);
+    doc.setTextColor(255, 107, 74);
+    doc.text('Desglose Mensual', 20, 110);
+    doc.setDrawColor(255, 107, 74);
+    doc.line(20, 112, 65, 112);
+
+    let yPos = 125;
+    doc.setTextColor(60, 60, 60);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Mes', 25, yPos);
+    doc.text('Proyectos', 80, yPos);
+    doc.text('Monto', 130, yPos);
+
+    doc.setFont('helvetica', 'normal');
+    last3Months.forEach(m => {
+      yPos += 10;
+      doc.text(m.name.toUpperCase(), 25, yPos);
+      doc.text(m.count.toString(), 80, yPos);
+      doc.text(formatCLP(m.amount), 130, yPos);
+    });
+
+    // Projects Detail
+    doc.setFontSize(16);
+    doc.setTextColor(255, 107, 74);
+    doc.text('Detalle de Proyectos Recientes', 20, 175);
+    doc.line(20, 177, 95, 177);
+
+    yPos = 190;
+    doc.setTextColor(60, 60, 60);
+    doc.setFontSize(10);
+    reportProjects.forEach((p, idx) => {
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${idx + 1}. ${p.name}`, 25, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${p.client} - ${formatCLP(p.amount || 0)} - Creado: ${new Date(p.createdAt).toLocaleDateString()}`, 25, yPos + 5);
+      yPos += 15;
+    });
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text('CONFIDENCIAL - PTC DASHBOARD MANAGER - © 2026', 105, 290, { align: 'center' });
+      doc.text(`Página ${i} de ${pageCount}`, 190, 290, { align: 'right' });
+    }
+
+    // Alternative Download Method (More robust for some browser configurations)
+    try {
+      const pdfBlob = doc.output('blob');
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      const fileName = `Reporte_Oportunidades_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      console.log('PDF generado y descargado exitosamente:', fileName);
+    } catch (error) {
+      console.error('Error al descargar el PDF:', error);
+      // Last resort: basic save
+      doc.save(`Reporte_Oportunidades.pdf`);
+    }
+  };
+
+  const getTimeDifference = (date) => {
+    if (!date) return 0;
+    const now = new Date();
+    const created = new Date(date);
+    const diffTime = Math.abs(now - created);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
   const handleAddQuotation = (quotation) => {
     setQuotations([quotation, ...quotations]);
 
@@ -411,6 +606,10 @@ function App() {
             <Calendar size={20} />
             <span>Activities</span>
           </div>
+          <div className={`nav-item ${activeTab === 'clients' ? 'active' : ''}`} onClick={() => setActiveTab('clients')}>
+            <Users size={20} />
+            <span>Clients</span>
+          </div>
         </nav>
 
         <div className="sidebar-divider"></div>
@@ -465,6 +664,10 @@ function App() {
           </button>
 
           <div className="header-actions">
+            <button className="add-btn grad-blue-purple" onClick={generateReport} title="Exportar Reporte PDF">
+              <ClipboardList size={18} />
+              <span>Reporte</span>
+            </button>
             <button className="icon-btn glass-card theme-toggle" onClick={() => setDarkMode(!darkMode)} title={darkMode ? 'Cambiar a modo día' : 'Cambiar a modo noche'}>
               {darkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
@@ -583,16 +786,22 @@ function App() {
                 <div className="activity-list">
                   {activities.slice(0, 5).map((activity, i) => (
                     <div key={i} className="activity-item">
-                      <div className="activity-icon grad-blue-purple">
-                        {activity.type === 'tour' ? <Users size={14} /> : <MessageSquare size={14} />}
+                      <div className={`activity-icon ${activity.type === 'review' ? 'grad-orange-pink' : 'grad-blue-purple'}`}>
+                        {activity.type === 'tour' ? <Users size={14} /> : activity.type === 'review' ? <ClipboardList size={14} /> : <MessageSquare size={14} />}
                       </div>
                       <div className="activity-details">
                         <span className="activity-title">
+                          <span className={`activity-type-tag ${activity.type === 'review' ? 'action' : 'activity'}`}>
+                            {activity.type === 'review' ? 'Acción' : 'Actividad'}
+                          </span>
                           {activity.tag && <span className="activity-tag">{activity.tag}: </span>}
                           {activity.title}
                         </span>
                         <span className="activity-time">{activity.time || activity.date}</span>
                       </div>
+                      <button className="icon-btn-small delete" onClick={() => handleDeleteActivity(activity.id)} style={{ marginLeft: 'auto', opacity: 0.5 }}>
+                        <Trash2 size={12} />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -607,22 +816,94 @@ function App() {
 
         {activeTab === 'activities' && (
           <section className="activities-full glass-card" style={{ padding: '32px' }}>
-            <h3 style={{ marginBottom: '24px' }}>All Activities</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h3>All Activities</h3>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button className="add-btn grad-blue-purple" onClick={() => {
+                  const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=PTC+Activities+Summary&details=${encodeURIComponent(activities.map(a => `${a.date}: ${a.title}`).join('\n'))}`;
+                  window.open(calendarUrl, '_blank');
+                }}>
+                  <Calendar size={18} />
+                  <span>Sincronizar GCal</span>
+                </button>
+                <button className="add-btn grad-orange-pink" onClick={() => setIsActivityModalOpen(true)}>
+                  <Plus size={18} />
+                  <span>Nueva Actividad</span>
+                </button>
+              </div>
+            </div>
             <div className="activity-list">
               {activities.map((activity, i) => (
-                <div key={i} className="activity-item" style={{ padding: '16px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                  <div className="activity-icon grad-blue-purple" style={{ width: '40px', height: '40px' }}>
-                    {activity.type === 'tour' ? <Users size={18} /> : <MessageSquare size={18} />}
+                <div key={i} className="activity-item" style={{ padding: '16px', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center' }}>
+                  <div className={`activity-icon ${activity.type === 'review' ? 'grad-orange-pink' : 'grad-blue-purple'}`} style={{ width: '40px', height: '40px' }}>
+                    {activity.type === 'tour' ? <Users size={18} /> : activity.type === 'review' ? <ClipboardList size={18} /> : <MessageSquare size={18} />}
                   </div>
                   <div className="activity-details">
-                    <span className="activity-title" style={{ fontSize: '1.1rem' }}>{activity.title}</span>
+                    <span className="activity-title" style={{ fontSize: '1.1rem' }}>
+                      <span className={`activity-type-tag ${activity.type === 'review' ? 'action' : 'activity'}`} style={{ marginRight: '8px' }}>
+                        {activity.type === 'review' ? 'Acción' : 'Actividad'}
+                      </span>
+                      {activity.title}
+                    </span>
                     <span className="activity-time">{activity.date} at {activity.time}</span>
                   </div>
-                  <div style={{ marginLeft: 'auto' }}>
+                  <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <span className={`type-badge ${activity.status === 'Completed' ? 'rd' : 'service'}`}>{activity.status}</span>
+                    <button className="icon-btn-small delete" onClick={() => handleDeleteActivity(activity.id)}>
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 </div>
               ))}
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'clients' && (
+          <section className="clients-full glass-card" style={{ padding: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h3>Gestión de Clientes</h3>
+              <button className="add-btn grad-orange-pink" onClick={() => { setSelectedClient(null); setIsClientModalOpen(true); }}>
+                <Plus size={18} />
+                <span>Agregar Cliente</span>
+              </button>
+            </div>
+            <div className="clients-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px' }}>
+              {clients.map(client => {
+                const clientProjects = projects.filter(p => p.client === client.name);
+                const clientQuotations = quotations.filter(q => q.client === client.name);
+                const totalInvoiced = clientQuotations.reduce((sum, q) => sum + (q.amount || 0), 0);
+
+                return (
+                  <div key={client.id} className="glass-card client-card" style={{ padding: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <h4>{client.name}</h4>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button className="icon-btn-small edit" onClick={() => { setSelectedClient(client); setIsClientModalOpen(true); }}>
+                          <Edit3 size={16} />
+                        </button>
+                        <button className="icon-btn-small delete" onClick={() => handleDeleteClient(client.name)}>
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="client-stats" style={{ marginTop: '16px', display: 'flex', gap: '12px' }}>
+                      <div className="stat-mini">
+                        <span className="label">Proyectos</span>
+                        <span className="value">{clientProjects.length}</span>
+                      </div>
+                      <div className="stat-mini">
+                        <span className="label">Cotizaciones</span>
+                        <span className="value">{clientQuotations.length}</span>
+                      </div>
+                      <div className="stat-mini">
+                        <span className="label">Total</span>
+                        <span className="value">{formatCLP(totalInvoiced)}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}
@@ -941,6 +1222,35 @@ function App() {
             </div>
           </form>
         )}
+      </Modal>
+
+      {/* Client Modal */}
+      <Modal isOpen={isClientModalOpen} onClose={() => setIsClientModalOpen(false)} title={selectedClient ? "Editar Cliente" : "Agregar Nuevo Cliente"}>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          const name = e.target.clientName.value;
+          if (selectedClient) {
+            handleUpdateClient(selectedClient.name, name);
+          } else {
+            setClients([...clients, { id: name, name }]);
+          }
+          setIsClientModalOpen(false);
+        }}>
+          <div className="form-group">
+            <label>Nombre del Cliente</label>
+            <input
+              name="clientName"
+              type="text"
+              required
+              defaultValue={selectedClient ? selectedClient.name : ''}
+              placeholder="Ej. Antofagasta Minerals"
+            />
+          </div>
+          <div className="form-actions">
+            <button type="button" className="btn-secondary" onClick={() => setIsClientModalOpen(false)}>Cancelar</button>
+            <button type="submit" className="btn-primary">{selectedClient ? "Actualizar" : "Agregar"}</button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

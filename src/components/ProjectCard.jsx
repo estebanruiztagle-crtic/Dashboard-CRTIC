@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, FlaskConical, Briefcase, Trash2, Edit3, Check, X, Eye, Clock, AlertTriangle, Trophy, Frown, MessageSquare, DoorClosed } from 'lucide-react';
+import { Layers, FlaskConical, Briefcase, Trash2, Edit3, Check, X, Eye, Clock, AlertTriangle, Trophy, Frown, MessageSquare, DoorClosed, DollarSign } from 'lucide-react';
 
 const STAGES = ['Opportunidad', 'Exploración', 'Investigar', 'Desarrollar', 'Testear', 'Validar', 'Escalar'];
 
@@ -79,7 +79,12 @@ const ProjectCard = ({ project, onDelete, onUpdateStage, onView, onCloseClick })
 
             <div className="card-body">
                 <div className="card-title-row">
-                    <h4>{project.name}</h4>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h4>{project.name}</h4>
+                        <div className={`amount-indicator ${project.amount > 0 ? 'active' : 'inactive'}`} title={project.amount > 0 ? `Monto: CLP ${project.amount}` : 'Sin monto'}>
+                            <DollarSign size={16} />
+                        </div>
+                    </div>
                     {project.status === 'Closed Won' && <Trophy size={18} className="win-icon" />}
                     {project.status === 'Closed Lost' && <Frown size={18} className="lost-icon" />}
                 </div>
