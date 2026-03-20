@@ -4,6 +4,7 @@ import { Layers, FlaskConical, Briefcase, Trash2, Edit3, Check, X, Eye, Clock, A
 const STAGES = ['Opportunidad', 'Exploración', 'Investigar', 'Desarrollar', 'Testear', 'Validar', 'Escalar'];
 
 // Stage to Progress mapping
+// eslint-disable-next-line react-refresh/only-export-components
 export const STAGE_PROGRESS = {
     'Opportunidad': 10,
     'Exploración': 25,
@@ -14,6 +15,7 @@ export const STAGE_PROGRESS = {
     'Escalar': 100
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const getProgressFromStage = (stage) => {
     return STAGE_PROGRESS[stage] || 0;
 };

@@ -234,7 +234,7 @@ function App() {
 
   // Statistics
   const activeProjectsCount = projects.filter(p => p.status === 'Active' && p.stage !== 'Validar' && p.stage !== 'Escalar').length;
-  const servicesCount = projects.filter(p => p.type === 'Service').length;
+  // const servicesCount = projects.filter(p => p.type === 'Service').length;
 
   // Unique clients from projects
   const projectClients = useMemo(() => {
@@ -292,6 +292,7 @@ function App() {
       setQuotations(quotations.filter(q => q.client !== clientName));
 
       const activity = {
+        // eslint-disable-next-line react-hooks/purity
         id: Date.now(),
         type: 'review',
         title: `Cliente eliminado: ${clientName}`,
@@ -443,14 +444,7 @@ function App() {
     }
   };
 
-  const getTimeDifference = (date) => {
-    if (!date) return 0;
-    const now = new Date();
-    const created = new Date(date);
-    const diffTime = Math.abs(now - created);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
+
 
   const handleAddQuotation = (quotation) => {
     setQuotations([quotation, ...quotations]);
